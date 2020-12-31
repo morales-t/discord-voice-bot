@@ -20,9 +20,6 @@ class VoiceBot(discord.Client):
         #Add logger
         self.logger =  logger
 
-        # Voice Client
-        self.voice_client = discord.VoiceClient
-
     async def on_ready(self):
         self.logger.debug('Logged on!')
 

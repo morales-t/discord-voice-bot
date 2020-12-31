@@ -31,7 +31,7 @@ class VoiceBot(discord.Client):
             pass
         elif message.content == '!play':
             source = discord.FFmpegPCMAudio(r'nice.mp3')
-            self.voice_clients[0].play(source, after=lambda e: print('Player error: %s' % e) if e else None)
+            self.voice_clients[0].play(source, after=None)
             await message.channel.send('Playing')
 
         elif message.content == '!join' and len(self.voice_clients) == 0:

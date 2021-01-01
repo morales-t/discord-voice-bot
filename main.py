@@ -42,6 +42,11 @@ class VoiceBot(discord.Client):
             if message.content.startswith(guild_prefix) and len(message.content) > len(guild_prefix):
                 await self._process_message(message, message.content[len(guild_prefix):])
 
+
+    # To-do:
+        # Find better way to handle the creation + deletion of mp3 files
+        # Find a better way to stop the bot from automatically disconnecting (background task?) without blocking other tasks
+        # Don't hardcode in commands - create a system of helper functions based on different commands (think - cogs system in discord API)
     async def _process_message(self, message, message_contents):
         split_message = message_contents.split(' ')
         command = split_message[0].upper()
@@ -69,6 +74,7 @@ class VoiceBot(discord.Client):
 
             await self.voice_clients[0].disconnect()
             
+    # To-Do: Need some sort of error handling (and move this outside of the main bot class)
     async def query_uberduck(self, text):
         async with aiohttp.ClientSession() as session:
             url = 'https://rtc.uberduck.ai/speak'
@@ -80,6 +86,7 @@ class VoiceBot(discord.Client):
                     response = await r.read()
                     return response
       
+    # To-Do: Move this outside of this class as a helper function for the TTS interface.
     def write_base64(self, response):
         decodedData = base64.b64decode(response)
 

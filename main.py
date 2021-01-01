@@ -1,14 +1,15 @@
 import discord
+import json
 import keyring
 import utils.constants as const
-import keyring
-from utils.config import create_logger
-
-creds = keyring.get_password(const.DEFAULT_SERVICE, const.BOT_NAME)
-logger = create_logger()
+import aiohttp
+import base64
+from utils.config import create_logger, flush
+import asyncio
+from time import sleep
 
 class VoiceBot(discord.Client):
-    def __init__(self, logger):
+    def __init__(self, logger, root_data='data', indent=4):
         
         # Allowing my bot to see all members:
         intents = discord.Intents.default()
@@ -20,20 +21,72 @@ class VoiceBot(discord.Client):
         #Add logger
         self.logger =  logger
 
+        self.root_data=root_data
+
+        self.indent=indent
+
+        self.guild_settings = {}
+
+        self.user_blacklist = []
+
     async def on_ready(self):
+        flush(self, self.root_data, self.indent)
         self.logger.debug('Logged on!')
 
     async def on_message(self, message):
-        if message.author.id == const.People.bot.value:
+        # Pass on all bot commands or blacklisted users
+        if message.author.bot or message.author.id in self.user_blacklist:
             pass
-        elif message.content == '!play':
-            source = discord.FFmpegPCMAudio(r'nice.mp3')
+        else:
+            guild_prefix = self.guild_settings[str(message.guild.id)]['prefix']
+            if message.content.startswith(guild_prefix) and len(message.content) > len(guild_prefix):
+                await self._process_message(message, message.content[len(guild_prefix):])
+
+    async def _process_message(self, message, message_contents):
+        split_message = message_contents.split(' ')
+        command = split_message[0].upper()
+        rest = ' '.join(map(str, split_message[1:]))
+
+        try:
+            voice_channel = message.author.voice.channel
+        except Exception as e:
+            self.logger.error(e)
+            voice_channel = None
+        if command == 'TTS' and len(rest) < 100 and len(self.voice_clients) == 0 and voice_channel is not None:
+
+            encoded = await self.query_uberduck(rest)
+
+            self.write_base64(encoded)
+
+            await voice_channel.connect()
+
+            source = discord.FFmpegPCMAudio('tts.mp3')
+
             self.voice_clients[0].play(source, after=None)
-            await message.channel.send('Playing')
 
-        elif message.content == '!join' and len(self.voice_clients) == 0:
-            channel = self.get_channel(793956984604196948)
-            await channel.connect()
+            while self.voice_clients[0].is_playing():
+                sleep(0.5)
 
-client = VoiceBot(logger)
+            await self.voice_clients[0].disconnect()
+            
+    async def query_uberduck(self, text):
+        async with aiohttp.ClientSession() as session:
+            url = 'https://rtc.uberduck.ai/speak'
+
+            data = '{{"speech":"{0}","voice":"trebek"}}'.format(text)
+
+            async with session.post(url, data=data) as r:
+                if r.status == 200:
+                    response = await r.read()
+                    return response
+      
+    def write_base64(self, response):
+        decodedData = base64.b64decode(response)
+
+        with open('tts.mp3', 'wb') as file:
+            file.write(decodedData)
+
+creds = keyring.get_password(const.DEFAULT_SERVICE, const.BOT_NAME)
+logger = create_logger()
+client = VoiceBot(logger=logger)
 client.run(creds)

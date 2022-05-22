@@ -1,0 +1,31 @@
+/*
+ *  Compilation:  javac OrderCheck.java
+ *  Execution:    java OrderCheck 5 10 15 2
+ *
+ *  @author:
+ *
+ *  Prints true if the four integer inputs are in strictly ascending
+ *  or descending order, false otherwise
+ *
+ *  % java OrderCheck 5 10 15 2
+ *  false
+ *
+ *  % java OrderCheck 15 11 9 4
+ *  true
+ *
+ */
+import java.util.Scanner;
+public class OrderCheck {
+
+    public static void main(String[] args) {
+        Scanner digits = new Scanner(System.in);
+        System.out.println("Enter 4 digits");
+        int w = digits.nextInt();
+        int x = digits.nextInt();
+        int y = digits.nextInt();
+        int z = digits.nextInt();
+        Boolean output = (w < x && x < y && y < z) || (w > x && x > y && y > z);
+        digits.close();
+        System.out.println(output);
+       }
+}
